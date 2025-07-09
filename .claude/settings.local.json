@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh issue view:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(mkdir:*)",
+      "Bash(python -m pytest tests/test_todo_model.py -v)",
+      "Bash(pip install:*)",
+      "Bash(python -m pytest tests/test_app.py -v)",
+      "Bash(python -m pytest -v)",
+      "Bash(python -m pytest --cov=. --cov-report=term-missing -v)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(python -m pytest --cov=. --cov-report=term-missing)"
+    ],
+    "deny": []
+  }
+}
