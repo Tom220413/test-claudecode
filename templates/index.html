@@ -70,14 +70,26 @@
             color: #666;
             font-style: italic;
         }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Todo List</h1>
         
-        <form class="add-form" action="/add" method="POST">
-            <input type="text" name="task" placeholder="新しいタスクを入力..." required maxlength="200">
+        <form class="add-form" action="{{ url_for('add_item') }}" method="POST">
+            <label for="task-input" class="sr-only">新しいタスクを入力</label>
+            <input type="text" id="task-input" name="task" placeholder="新しいタスクを入力..." required maxlength="200" aria-label="新しいタスクを入力">
             <input type="submit" value="追加">
         </form>
         
@@ -85,10 +97,11 @@
             <ul class="todo-list">
                 {% for item in items %}
                     <li class="todo-item {% if item.completed %}completed{% endif %}">
-                        <form action="/toggle/{{ item.id }}" method="POST" style="display: inline;">
+                        <form action="{{ url_for('toggle_item', item_id=item.id) }}" method="POST" style="display: inline;">
                             <input type="checkbox" class="todo-checkbox" 
                                    {% if item.completed %}checked{% endif %}
-                                   onchange="this.form.submit()">
+                                   onchange="this.form.submit()"
+                                   aria-label="完了状態を切り替え: {{ item.text }}">
                         </form>
                         <span class="todo-text">{{ item.text }}</span>
                     </li>

@@ -50,3 +50,30 @@ class TestTodoModel:
         items = new_model.get_all_items()
         assert len(items) == 1
         assert items[0]['text'] == "Persistent task"
+    
+    def test_add_item_empty_text_raises_error(self):
+        with pytest.raises(ValueError, match="Todo text cannot be empty"):
+            self.todo_model.add_item("")
+        
+        with pytest.raises(ValueError, match="Todo text cannot be empty"):
+            self.todo_model.add_item("   ")
+        
+        with pytest.raises(ValueError, match="Todo text cannot be empty"):
+            self.todo_model.add_item(None)
+    
+    def test_add_item_too_long_text_raises_error(self):
+        long_text = "a" * 201
+        with pytest.raises(ValueError, match="Todo text cannot exceed 200 characters"):
+            self.todo_model.add_item(long_text)
+    
+    def test_add_item_exactly_200_chars_works(self):
+        exactly_200_chars = "a" * 200
+        item_id = self.todo_model.add_item(exactly_200_chars)
+        assert item_id is not None
+        items = self.todo_model.get_all_items()
+        assert len(items) == 1
+        assert items[0]['text'] == exactly_200_chars
+    
+    def test_toggle_completion_invalid_id_raises_error(self):
+        with pytest.raises(ValueError, match="Todo item with ID 999 not found"):
+            self.todo_model.toggle_completion(999)
