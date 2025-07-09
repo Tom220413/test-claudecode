@@ -1,0 +1,136 @@
+name: Claude Code 並列開発ワークフロー
+
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue番号'
+        required: true
+        type: string
+
+env:
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  # タスク分割（エンジニア役）
+  task_assignment:
+    runs-on: ubuntu-latest
+    if: contains(github.event.label.name, 'claude-dev') || github.event_name == 'workflow_dispatch'
+    outputs:
+      implementation_tasks: ${{ steps.split.outputs.implementation_tasks }}
+      review_tasks: ${{ steps.split.outputs.review_tasks }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Claude Code
+        run: |
+          npm install -g @anthropic-ai/claude-dev
+          claude-dev config set api-key $ANTHROPIC_API_KEY
+          
+      - name: タスク分割
+        id: split
+        run: |
+          ISSUE_NUM="${{ github.event.inputs.issue_number || github.event.issue.number }}"
+          claude-dev "GitHub Issue #${ISSUE_NUM} を読み取り、実装タスクとレビュータスクに分割してJSON形式で出力してください" > tasks.json
+          echo "implementation_tasks=$(cat tasks.json | jq -c '.implementation')" >> $GITHUB_OUTPUT
+          echo "review_tasks=$(cat tasks.json | jq -c '.review')" >> $GITHUB_OUTPUT
+
+  # Claude Code A: 実装
+  claude_implementation:
+    runs-on: ubuntu-latest
+    needs: task_assignment
+    strategy:
+      matrix:
+        task: ${{ fromJson(needs.task_assignment.outputs.implementation_tasks) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Git Worktree (Implementation)
+        run: |
+          git worktree add ../claude-impl-${{ matrix.task.id }} ${{ github.head_ref || github.ref_name }}
+          cd ../claude-impl-${{ matrix.task.id }}
+          
+      - name: Setup Claude Code
+        run: |
+          npm install -g @anthropic-ai/claude-dev
+          claude config set api-key $ANTHROPIC_API_KEY
+          claude config set mcp.github.enabled true
+          claude config set mcp.github.token $GITHUB_TOKEN
+          claude config set mcp.github.repo ${{ github.repository }}
+          
+      - name: 実装実行
+        run: |
+          cd ../claude-impl-${{ matrix.task.id }}
+          claude-dev "${{ matrix.task.prompt }}"
+          
+      - name: PR作成
+        run: |
+          cd ../claude-impl-${{ matrix.task.id }}
+          git push origin HEAD:feature/claude-impl-${{ matrix.task.id }}
+          claude-dev "実装完了。PR作成してください。タイトル: ${{ matrix.task.title }}"
+
+  # Claude Code B: レビュー（実装完了後）
+  claude_review:
+    runs-on: ubuntu-latest
+    needs: [task_assignment, claude_implementation]
+    strategy:
+      matrix:
+        task: ${{ fromJson(needs.task_assignment.outputs.review_tasks) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Git Worktree (Review)
+        run: |
+          git worktree add ../claude-review-${{ matrix.task.id }} ${{ github.head_ref || github.ref_name }}
+          cd ../claude-review-${{ matrix.task.id }}
+          
+      - name: Setup Claude Code
+        run: |
+          npm install -g @anthropic-ai/claude-dev
+          claude config set api-key $ANTHROPIC_API_KEY
+          claude config set mcp.github.enabled true
+          claude config set mcp.github.token $GITHUB_TOKEN
+          claude config set mcp.github.repo ${{ github.repository }}
+          
+      - name: ローカルレビュー実行
+        run: |
+          cd ../claude-review-${{ matrix.task.id }}
+          claude-dev "最新のPRを確認し、客観的なコードレビューを実行してください"
+          
+      - name: PRレビューコメント
+        run: |
+          claude-dev "レビュー結果をPRにコメントとして追加してください"
+
+  # エンジニアによる最終チェック
+  engineer_final_review:
+    runs-on: ubuntu-latest
+    needs: [claude_implementation, claude_review]
+    steps:
+      - name: 最終レビュー通知
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: ${{ github.event.issue.number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🔍 Claude Codeによる実装とレビューが完了しました。エンジニアによる最終確認をお願いします。\n\n- [ ] 実装内容の確認\n- [ ] テストの実行\n- [ ] マージ可否の判断'
+            });
+
+  # 自動マージ（承認後）
+  auto_merge:
+    runs-on: ubuntu-latest
+    needs: engineer_final_review
+    if: contains(github.event.label.name, 'auto-merge-approved')
+    steps:
+      - name: Auto Merge
+        uses: pascalgn/merge-action@v0.15.6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          merge_method: squash

@@ -1,0 +1,59 @@
+name: Issue → Claude開発 自動トリガー
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+jobs:
+  analyze_issue:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'issues' && contains(github.event.issue.body, '/claude')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/claude'))
+    
+    steps:
+      - name: Issue分析とラベル付け
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || '';
+            
+            // 技術要件の自動判定
+            const isTechnical = /^(feat|fix|refactor|perf|test|docs):/i.test(issue.title) ||
+                              body.includes('## 技術要件') ||
+                              body.includes('## Technical Requirements');
+            
+            if (isTechnical) {
+              // claude-dev ラベルを追加
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['claude-dev', 'auto-development']
+              });
+              
+              // Notion連携コメント
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `🤖 Claude Code開発が開始されます\n\n` +
+                      `📋 Notion要件: [リンクを確認](notion-link)\n` +
+                      `🔧 技術Issue: #${issue.number}\n` +
+                      `⚡ 自動開発を開始します...`
+              });
+              
+              // 並列開発ワークフローをトリガー
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'claude-parallel-dev.yml',
+                ref: 'main',
+                inputs: {
+                  issue_number: issue.number.toString()
+                }
+              });
+            }

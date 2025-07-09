@@ -13,8 +13,47 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(gh pr create:*)",
-      "Bash(python -m pytest --cov=. --cov-report=term-missing)"
+      "Bash(python -m pytest --cov=. --cov-report=term-missing)",
+      "Bash(npm test)",
+      "Bash(rm:*)",
+      "Bash(npm test:*)",
+      "Bash(echo:*)",
+      "Bash(grep:*)",
+      "Bash(gh issue list:*)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(claude mcp add:*)",
+      "Bash(claude mcp:*)",
+      "Bash(find:*)",
+      "Bash(gh issue view:*)",
+      "Bash(mkdir:*)",
+      "Bash(rg:*)",
+      "Bash(ls:*)",
+      "Bash(brew install:*)"
     ],
-    "deny": []
-  }
-}
+        "deny": [
+          "Bash(sudo:*)",
+          "Bash(rm:*)",
+          "Bash(rm -rf:*)",
+          "Bash(git push:*)",
+          "Bash(git commit:*)",
+          "Bash(git reset:*)",
+          "Bash(git rebase:*)",
+          "Read(.env.*)",
+          "Read(id_rsa)",
+          "Read(id_ed25519)",
+          "Read(**/*token*)",
+          "Read(**/*key*)",
+          "Write(.env*)",
+          "Write(**/secrets/**)",
+          "Bash(curl:*)",
+          "Bash(wget:*)",
+          "Bash(nc:*)",
+          "Bash(npm uninstall:*)",
+          "Bash(npm remove:*)",
+          "Bash(psql:*)",
+          "Bash(mysql:*)",
+          "Bash(mongod:*)",
+          "mcp__supabase__execute_sql"
+        ]
+      }
+    }
