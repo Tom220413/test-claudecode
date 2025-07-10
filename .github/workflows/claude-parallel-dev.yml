@@ -29,7 +29,6 @@ jobs:
       - name: Setup Claude Code
         run: |
           npm install -g @anthropic-ai/claude-code
-          claude config set api-key $ANTHROPIC_API_KEY --global
           
       - name: タスク分割
         id: split
@@ -58,7 +57,6 @@ jobs:
       - name: Setup Claude Code
         run: |
           npm install -g @anthropic-ai/claude-code
-          claude config set api-key $ANTHROPIC_API_KEY --global
           claude config set mcp.github.enabled true
           claude config set mcp.github.token $GITHUB_TOKEN
           claude config set mcp.github.repo ${{ github.repository }}
@@ -93,7 +91,6 @@ jobs:
       - name: Setup Claude Code
         run: |
           npm install -g @anthropic-ai/claude-code
-          claude config set api-key $ANTHROPIC_API_KEY --global
           claude config set mcp.github.enabled true
           claude config set mcp.github.token $GITHUB_TOKEN
           claude config set mcp.github.repo ${{ github.repository }}
