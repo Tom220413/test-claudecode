@@ -18,7 +18,7 @@ jobs:
   # タスク分割（エンジニア役）
   task_assignment:
     runs-on: ubuntu-latest
-    if: contains(github.event.label.name, 'claude-dev') || github.event_name == 'workflow_dispatch'
+    if: contains(github.event.label.name, 'claude') || github.event_name == 'workflow_dispatch'
     outputs:
       implementation_tasks: ${{ steps.split.outputs.implementation_tasks }}
       review_tasks: ${{ steps.split.outputs.review_tasks }}
@@ -28,14 +28,14 @@ jobs:
         
       - name: Setup Claude Code
         run: |
-          npm install -g @anthropic-ai/claude-dev
-          claude-dev config set api-key $ANTHROPIC_API_KEY
+          npm install -g @anthropic-ai/claude
+          claude config set api-key $ANTHROPIC_API_KEY
           
       - name: タスク分割
         id: split
         run: |
           ISSUE_NUM="${{ github.event.inputs.issue_number || github.event.issue.number }}"
-          claude-dev "GitHub Issue #${ISSUE_NUM} を読み取り、実装タスクとレビュータスクに分割してJSON形式で出力してください" > tasks.json
+          claude "GitHub Issue #${ISSUE_NUM} を読み取り、実装タスクとレビュータスクに分割してJSON形式で出力してください" > tasks.json
           echo "implementation_tasks=$(cat tasks.json | jq -c '.implementation')" >> $GITHUB_OUTPUT
           echo "review_tasks=$(cat tasks.json | jq -c '.review')" >> $GITHUB_OUTPUT
 
@@ -57,7 +57,7 @@ jobs:
           
       - name: Setup Claude Code
         run: |
-          npm install -g @anthropic-ai/claude-dev
+          npm install -g @anthropic-ai/claude
           claude config set api-key $ANTHROPIC_API_KEY
           claude config set mcp.github.enabled true
           claude config set mcp.github.token $GITHUB_TOKEN
@@ -66,13 +66,13 @@ jobs:
       - name: 実装実行
         run: |
           cd ../claude-impl-${{ matrix.task.id }}
-          claude-dev "${{ matrix.task.prompt }}"
+          claude "${{ matrix.task.prompt }}"
           
       - name: PR作成
         run: |
           cd ../claude-impl-${{ matrix.task.id }}
           git push origin HEAD:feature/claude-impl-${{ matrix.task.id }}
-          claude-dev "実装完了。PR作成してください。タイトル: ${{ matrix.task.title }}"
+          claude "実装完了。PR作成してください。タイトル: ${{ matrix.task.title }}"
 
   # Claude Code B: レビュー（実装完了後）
   claude_review:
@@ -92,7 +92,7 @@ jobs:
           
       - name: Setup Claude Code
         run: |
-          npm install -g @anthropic-ai/claude-dev
+          npm install -g @anthropic-ai/claude
           claude config set api-key $ANTHROPIC_API_KEY
           claude config set mcp.github.enabled true
           claude config set mcp.github.token $GITHUB_TOKEN
@@ -101,11 +101,11 @@ jobs:
       - name: ローカルレビュー実行
         run: |
           cd ../claude-review-${{ matrix.task.id }}
-          claude-dev "最新のPRを確認し、客観的なコードレビューを実行してください"
+          claude "最新のPRを確認し、客観的なコードレビューを実行してください"
           
       - name: PRレビューコメント
         run: |
-          claude-dev "レビュー結果をPRにコメントとして追加してください"
+          claude "レビュー結果をPRにコメントとして追加してください"
 
   # エンジニアによる最終チェック
   engineer_final_review:
