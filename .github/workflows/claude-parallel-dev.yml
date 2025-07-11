@@ -35,6 +35,7 @@ jobs:
         run: |
           ISSUE_NUM="${{ github.event.inputs.issue_number || github.event.issue.number }}"
           claude "GitHub Issue #${ISSUE_NUM} を読み取り、実装タスクとレビュータスクに分割してJSON形式で出力してください" > tasks.json
+          cat tasks.json
           echo "implementation_tasks=$(cat tasks.json | jq -c '.implementation')" >> $GITHUB_OUTPUT
           echo "review_tasks=$(cat tasks.json | jq -c '.review')" >> $GITHUB_OUTPUT
 
