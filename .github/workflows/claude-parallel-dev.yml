@@ -76,6 +76,7 @@ jobs:
           echo "matrix.task: '${{ matrix.task }}'"
           # タスク内容からIDを生成（英数字のみ）
           TASK_ID=$(echo "${{ matrix.task }}" | iconv -f utf8 -t ascii//translit | tr -cd '[:alnum:]_' | head -c 15)
+          TASK_ID="${TASK_ID}_${GITHUB_RUN_NUMBER}_${RANDOM}"
           echo "TASK_ID: '$TASK_ID'"
           # 新しいブランチを作成
           git checkout -b claude-impl-$TASK_ID
@@ -114,6 +115,7 @@ jobs:
         run: |
           # タスク内容からIDを生成（英数字のみ）
           TASK_ID=$(echo "${{ matrix.task }}" | iconv -f utf8 -t ascii//translit | tr -cd '[:alnum:]_' | head -c 15)
+          TASK_ID="${TASK_ID}_${GITHUB_RUN_NUMBER}_${RANDOM}"
           echo "TASK_ID: '$TASK_ID'"
           # 新しいブランチを作成
           git checkout -b claude-review-$TASK_ID
