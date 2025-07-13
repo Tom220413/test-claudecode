@@ -74,12 +74,9 @@ jobs:
         run: |
           # デバッグ: matrix.taskの内容を確認
           echo "matrix.task: '${{ matrix.task }}'"
-          
-          # タスク内容からIDを生成
-          TASK_ID=$(echo "${{ matrix.task }}" | head -c 20 | tr ' ' '_' | tr -d '\n')
+          # タスク内容からIDを生成（英数字のみ）
+          TASK_ID=$(echo "${{ matrix.task }}" | iconv -f utf8 -t ascii//translit | tr -cd '[:alnum:]_' | head -c 15)
           echo "TASK_ID: '$TASK_ID'"
-          echo "TASK_ID length: ${#TASK_ID}"
-          
           # 新しいブランチを作成
           git checkout -b claude-impl-$TASK_ID
           git worktree add ../claude-impl-$TASK_ID claude-impl-$TASK_ID
@@ -115,8 +112,8 @@ jobs:
         uses: actions/checkout@v4
       - name: レビュー実行
         run: |
-          # タスク内容からIDを生成
-          TASK_ID=$(echo "${{ matrix.task }}" | head -c 20 | tr ' ' '_' | tr -d '\n')
+          # タスク内容からIDを生成（英数字のみ）
+          TASK_ID=$(echo "${{ matrix.task }}" | iconv -f utf8 -t ascii//translit | tr -cd '[:alnum:]_' | head -c 15)
           echo "TASK_ID: '$TASK_ID'"
           # 新しいブランチを作成
           git checkout -b claude-review-$TASK_ID
