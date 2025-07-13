@@ -69,17 +69,24 @@ jobs:
         
       - name: 実装ブランチ作成
         run: |
-          # 既存のworktreeを削除
-          git worktree remove ../claude-impl 2>/dev/null || true
+          # 全てのworktreeをリスト表示（デバッグ用）
+          git worktree list || true
           
-          # ブランチが存在するかチェックして作成
-          if ! git show-ref --verify --quiet refs/heads/claude-implementation; then
-            git checkout -b claude-implementation
-          else
-            git checkout claude-implementation
-          fi
+          # 現在のworktreeを安全なブランチに移動
+          git checkout main
           
+          # 問題のあるworktreeを強制削除
+          git worktree remove ../claude-impl --force 2>/dev/null || true
+          
+          # ブランチを強制削除
+          git branch -D claude-implementation 2>/dev/null || true
+          
+          # 新しくブランチを作成
+          git checkout -b claude-implementation
+          
+          # worktreeを作成
           git worktree add ../claude-impl claude-implementation
+          
           cd ../claude-impl
           
       - name: Setup Claude Code
