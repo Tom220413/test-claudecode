@@ -11,39 +11,43 @@ on:
         type: string
 
 env:
-  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  # タスク分割（エンジニア役）
+  # タスク分割（チェックリスト抽出）
   task_assignment:
     runs-on: ubuntu-latest
-    if: contains(github.event.label.name, 'claude') || github.event_name == 'workflow_dispatch'
     outputs:
-      implementation_tasks: ${{ steps.split.outputs.implementation_tasks }}
-      review_tasks: ${{ steps.split.outputs.review_tasks }}
+      implementation_tasks: ${{ steps.extract.outputs.implementation_tasks }}
+      review_tasks: ${{ steps.extract.outputs.review_tasks }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup Claude Code
+      - name: Get Issue Body
+        id: get_issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = github.event.issue.number || (github.event.inputs && github.event.inputs.issue_number);
+            const issue = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(issue_number)
+            });
+            core.setOutput('body', issue.data.body);
+      - name: Extract tasks from checklist
+        id: extract
         run: |
-          npm install -g @anthropic-ai/claude-code
-          
-      - name: タスク分割
-        id: split
-        run: |
-          ISSUE_NUM="${{ github.event.inputs.issue_number || github.event.issue.number }}"
-          claude "GitHub Issue #${ISSUE_NUM} を読み取り、実装タスクとレビュータスクに分割してJSON形式で出力してください" > tasks_raw.json
-          # 1. BOM除去
-          sed '1s/^\xEF\xBB\xBF//' tasks_raw.json > tasks_clean1.json
-          # 2. コードブロック・json行・空行除去
-          sed '/^```/d;/^json$/Id;/^$/d' tasks_clean1.json > tasks_clean2.json
-          # 3. 最初の{以降だけを抜き出す
-          awk '/^{/{flag=1} flag' tasks_clean2.json > tasks_final.json
-          cat tasks_final.json | jq .
-          echo "implementation_tasks=$(cat tasks_final.json | jq -c '.implementation')" >> $GITHUB_OUTPUT
-          echo "review_tasks=$(cat tasks_final.json | jq -c '.review')" >> $GITHUB_OUTPUT
+          echo "${{ steps.get_issue.outputs.body }}" > issue_body.md
+          # 実装タスク抽出
+          awk '/^## 実装タスク/{flag=1; next} /^## /{flag=0} flag && /^- \[ \]/' issue_body.md | sed 's/^- \[ \] //' > impl_tasks.txt
+          # レビューチェックリスト抽出
+          awk '/^## レビューチェックリスト/{flag=1; next} /^## /{flag=0} flag && /^- \[ \]/' issue_body.md | sed 's/^- \[ \] //' > review_tasks.txt
+          # JSON配列化
+          jq -R -s -c 'split("\n")[:-1]' impl_tasks.txt > impl_tasks.json
+          jq -R -s -c 'split("\n")[:-1]' review_tasks.txt > review_tasks.json
+          echo "implementation_tasks=$(cat impl_tasks.json)" >> $GITHUB_OUTPUT
+          echo "review_tasks=$(cat review_tasks.json)" >> $GITHUB_OUTPUT
 
   # Claude Code A: 実装
   claude_implementation:
@@ -56,7 +60,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Setup Git Worktree (Implementation)
+      - name: 実装実行
         run: |
           git worktree add ../claude-impl-${{ matrix.task.id }} ${{ github.head_ref || github.ref_name }}
           cd ../claude-impl-${{ matrix.task.id }}
@@ -89,8 +93,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup Git Worktree (Review)
+      - name: レビュー実行
         run: |
           git worktree add ../claude-review-${{ matrix.task.id }} ${{ github.head_ref || github.ref_name }}
           cd ../claude-review-${{ matrix.task.id }}
