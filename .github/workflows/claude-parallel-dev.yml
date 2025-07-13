@@ -40,7 +40,7 @@ jobs:
           echo "tasks.json1"
           cat tasks.json
           echo "tasks.json2"
-          cat tasks.json | jq .
+          sed '/^```/d;/^json$/Id;/^$/d' tasks_raw.json > tasks.json
           cat "tasks.json3"
           cat -v tasks.json
           echo "implementation_tasks=$(cat tasks.json | jq -c '.implementation_tasks')" >> $GITHUB_OUTPUT
