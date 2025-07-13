@@ -35,20 +35,19 @@ jobs:
               issue_number: Number(ISSUE_NUM)
             });
             core.setOutput('body', issue.data.body);
-      - name: Extract tasks from checklist
-        id: extract
+      - name: Extract implementation tasks from 機能要件
         run: |
           cat > issue_body.md <<EOF
           ${{ steps.get_issue.outputs.body }}
           EOF
-          # 実装タスク抽出
-          awk '/^## 実装タスク/{flag=1; next} /^## /{flag=0} flag && /^- \[ \]/' issue_body.md | sed 's/^- \[ \] //' > impl_tasks.txt
-          # レビューチェックリスト抽出
-          awk '/^## レビューチェックリスト/{flag=1; next} /^## /{flag=0} flag && /^- \[ \]/' issue_body.md | sed 's/^- \[ \] //' > review_tasks.txt
-          # JSON配列化
+          grep '^-' issue_body.md | sed 's/^- //' > impl_tasks.txt
           jq -R -s -c 'split("\n")[:-1]' impl_tasks.txt > impl_tasks.json
-          jq -R -s -c 'split("\n")[:-1]' review_tasks.txt > review_tasks.json
           echo "implementation_tasks=$(cat impl_tasks.json)" >> $GITHUB_OUTPUT
+
+      - name: Extract review tasks from 受け入れ基準
+        run: |
+          awk '/^## 受け入れ基準/{flag=1; next} /^## /{flag=0} flag && /^-/' issue_body.md | sed 's/^- //' > review_tasks.txt
+          jq -R -s -c 'split("\n")[:-1]' review_tasks.txt > review_tasks.json
           echo "review_tasks=$(cat review_tasks.json)" >> $GITHUB_OUTPUT
 
   # Claude Code A: 実装
