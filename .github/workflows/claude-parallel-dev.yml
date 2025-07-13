@@ -36,6 +36,7 @@ jobs:
             });
             core.setOutput('body', issue.data.body);
       - name: Extract implementation tasks from 機能要件
+        id: extract
         run: |
           cat > issue_body.md <<EOF
           ${{ steps.get_issue.outputs.body }}
@@ -46,9 +47,7 @@ jobs:
           awk '/^#+ 機能要件/{flag=1; next} /^#+ /{flag=0} flag && /^-/' issue_body.md | sed 's/^- //' > impl_tasks.txt
           cat impl_tasks.txt
           jq -R -s -c 'split("\n")[:-1]' impl_tasks.txt > impl_tasks.json
-          echo "===== impl_tasks.json ====="
-          cat impl_tasks.json
-          echo "implementation_tasks=$(cat impl_tasks.json)" >> $GITHUB_OUTPUT
+          echo "implementation_tasks=$(cat impl_tasks.json | jq -c .)" >> $GITHUB_OUTPUT
 
       - name: Extract review tasks from 受け入れ基準
         run: |
