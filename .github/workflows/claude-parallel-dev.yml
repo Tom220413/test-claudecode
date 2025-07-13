@@ -74,7 +74,6 @@ jobs:
         run: |
           # デバッグ: matrix.taskの内容を確認
           echo "matrix.task: '${{ matrix.task }}'"
-          echo "matrix.task length: ${#matrix.task}"
           
           # タスク内容からIDを生成
           TASK_ID=$(echo "${{ matrix.task }}" | head -c 20 | tr ' ' '_' | tr -d '\n')
@@ -118,6 +117,7 @@ jobs:
         run: |
           # タスク内容からIDを生成
           TASK_ID=$(echo "${{ matrix.task }}" | head -c 20 | tr ' ' '_' | tr -d '\n')
+          echo "TASK_ID: '$TASK_ID'"
           # 新しいブランチを作成
           git checkout -b claude-review-$TASK_ID
           git worktree add ../claude-review-$TASK_ID claude-review-$TASK_ID
