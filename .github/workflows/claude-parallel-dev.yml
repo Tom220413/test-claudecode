@@ -47,7 +47,11 @@ jobs:
           awk '/^#+ 機能要件/{flag=1; next} /^#+ /{flag=0} flag && /^-/' issue_body.md | sed 's/^- //' > impl_tasks.txt
           cat impl_tasks.txt
           jq -R -s -c 'split("\n")[:-1]' impl_tasks.txt > impl_tasks.json
+          echo "===== impl_tasks.json ====="
+          cat impl_tasks.json
+          echo "===== GITHUB_OUTPUT ====="
           echo "implementation_tasks=$(cat impl_tasks.json | jq -c .)" >> $GITHUB_OUTPUT
+          echo "implementation_tasks=$(cat impl_tasks.json | jq -c .)"
 
       - name: Extract review tasks from 受け入れ基準
         run: |
@@ -68,10 +72,19 @@ jobs:
         
       - name: 実装実行
         run: |
+          # デバッグ: matrix.taskの内容を確認
+          echo "matrix.task: '${{ matrix.task }}'"
+          echo "matrix.task length: ${#matrix.task}"
+          
+          # タスク内容からIDを生成
+          TASK_ID=$(echo "${{ matrix.task }}" | head -c 20 | tr ' ' '_' | tr -d '\n')
+          echo "TASK_ID: '$TASK_ID'"
+          echo "TASK_ID length: ${#TASK_ID}"
+          
           # 新しいブランチを作成
-          git checkout -b claude-impl-${{ matrix.task.id }}
-          git worktree add ../claude-impl-${{ matrix.task.id }} claude-impl-${{ matrix.task.id }}
-          cd ../claude-impl-${{ matrix.task.id }}
+          git checkout -b claude-impl-$TASK_ID
+          git worktree add ../claude-impl-$TASK_ID claude-impl-$TASK_ID
+          cd ../claude-impl-$TASK_ID
           
       - name: Setup Claude Code
         run: |
