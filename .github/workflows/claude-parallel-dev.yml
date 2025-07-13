@@ -42,8 +42,8 @@ jobs:
           # 3. 最初の{以降だけを抜き出す
           awk '/^{/{flag=1} flag' tasks_clean2.json > tasks_final.json
           cat tasks_final.json | jq .
-          echo "implementation_tasks=$(cat tasks_final.json | jq -c '.implementation_tasks')" >> $GITHUB_OUTPUT
-          echo "review_tasks=$(cat tasks_final.json | jq -c '.review_tasks')" >> $GITHUB_OUTPUT
+          echo "implementation_tasks=$(cat tasks_final.json | jq -c '.implementation')" >> $GITHUB_OUTPUT
+          echo "review_tasks=$(cat tasks_final.json | jq -c '.review')" >> $GITHUB_OUTPUT
 
   # Claude Code A: 実装
   claude_implementation:
