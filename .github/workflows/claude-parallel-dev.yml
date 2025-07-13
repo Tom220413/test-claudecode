@@ -84,9 +84,10 @@ jobs:
       - name: Setup Claude Code
         run: |
           npm install -g @anthropic-ai/claude-code
-          claude config set mcp.github.enabled true
-          claude config set mcp.github.token $GITHUB_TOKEN
-          claude config set mcp.github.repo ${{ github.repository }}
+          # 新しい設定方法
+          claude config set allowedTools github
+          claude config set hasTrustDialogAccepted true
+          claude config set hasCompletedProjectOnboarding true
           
       - name: 並列実装実行
         run: |
