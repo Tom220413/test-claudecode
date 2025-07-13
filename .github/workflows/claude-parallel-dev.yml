@@ -43,7 +43,7 @@ jobs:
           echo "===== issue_body.md ====="
           cat issue_body.md
           echo "===== 機能要件抽出 ====="
-          awk '/^## 機能要件/{flag=1; next} /^## /{flag=0} flag && /^-/' issue_body.md | sed 's/^- //' > impl_tasks.txt
+          awk '/^#+ 機能要件/{flag=1; next} /^#+ /{flag=0} flag && /^-/' issue_body.md | sed 's/^- //' > impl_tasks.txt
           cat impl_tasks.txt
           jq -R -s -c 'split("\n")[:-1]' impl_tasks.txt > impl_tasks.json
           echo "===== impl_tasks.json ====="
@@ -52,7 +52,7 @@ jobs:
 
       - name: Extract review tasks from 受け入れ基準
         run: |
-          awk '/^## 受け入れ基準/{flag=1; next} /^## /{flag=0} flag && /^-/' issue_body.md | sed 's/^- //' > review_tasks.txt
+          awk '/^#+ 受け入れ基準/{flag=1; next} /^## /{flag=0} flag && /^-/' issue_body.md | sed 's/^- //' > review_tasks.txt
           jq -R -s -c 'split("\n")[:-1]' review_tasks.txt > review_tasks.json
           echo "review_tasks=$(cat review_tasks.json)" >> $GITHUB_OUTPUT
 
