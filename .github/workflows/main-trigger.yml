@@ -1,0 +1,88 @@
+name: Main Push → Claude並列開発 自動トリガー
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  trigger_claude_development:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 最新Issue取得と並列開発トリガー
+        uses: actions/github-script@v7
+        with:
+          script: |
+            console.log(`Main branch push detected: ${context.sha}`);
+            
+            // 最新のopen Issueを取得
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              sort: 'created',
+              direction: 'desc',
+              per_page: 5
+            });
+            
+            if (issues.data.length === 0) {
+              console.log('No open issues found');
+              return;
+            }
+            
+            // 技術要件があるIssueを探す
+            let targetIssue = null;
+            for (const issue of issues.data) {
+              const body = issue.body || '';
+              const title = issue.title;
+              
+              // 技術要件の判定
+              const isTechnical = /^(feat|fix|refactor|perf|test|docs):/i.test(title) ||
+                                body.includes('## 技術要件') ||
+                                body.includes('## Technical Requirements') ||
+                                body.includes('## 機能要件') ||
+                                body.includes('## 受け入れ基準');
+              
+              if (isTechnical) {
+                targetIssue = issue;
+                break;
+              }
+            }
+            
+            if (!targetIssue) {
+              console.log('No technical issues found');
+              return;
+            }
+            
+            console.log(`Found technical issue #${targetIssue.number}: ${targetIssue.title}`);
+            
+            // claude-dev ラベルを追加
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: targetIssue.number,
+              labels: ['claude-dev', 'auto-development']
+            });
+            
+            // 自動開発開始コメント
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: targetIssue.number,
+              body: `🤖 Mainブランチのpushを検知しました\n\n` +
+                    `📋 Issue: #${targetIssue.number}\n` +
+                    `🔧 自動並列開発を開始します...\n` +
+                    `📝 コミット: ${context.sha.substring(0, 7)}`
+            });
+            
+            // 並列開発ワークフローをトリガー
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'claude-parallel-dev.yml',
+              ref: 'main',
+              inputs: {
+                issue_number: targetIssue.number.toString()
+              }
+            });
+            
+            console.log(`Claude parallel development workflow triggered for issue #${targetIssue.number}`); 
