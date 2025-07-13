@@ -38,7 +38,9 @@ jobs:
       - name: Extract tasks from checklist
         id: extract
         run: |
-          printf "%s\n" "${{ steps.get_issue.outputs.body }}" > issue_body.md
+          cat > issue_body.md <<EOF
+          ${{ steps.get_issue.outputs.body }}
+          EOF
           # 実装タスク抽出
           awk '/^## 実装タスク/{flag=1; next} /^## /{flag=0} flag && /^- \[ \]/' issue_body.md | sed 's/^- \[ \] //' > impl_tasks.txt
           # レビューチェックリスト抽出
