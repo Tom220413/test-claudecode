@@ -36,11 +36,15 @@ jobs:
           ISSUE_NUM="${{ github.event.inputs.issue_number || github.event.issue.number }}"
           claude "GitHub Issue #${ISSUE_NUM} を読み取り、実装タスクとレビュータスクに分割してJSON形式で出力してください" > tasks_raw.json
           # コードブロック記法（```など）を除去
-          sed '/^```/d;/^json$/Id;/^$/d' tasks_raw.json > tasks.json
-          # BOM除去
-          sed '1s/^\xEF\xBB\xBF//' tasks.json > tasks_clean.json
-          # さらに空行や不可視文字も除去
-          sed '/^$/d' tasks_clean.json > tasks_final.json
+          # 1. BOM除去
+          sed '1s/^\xEF\xBB\xBF//' tasks_raw.json > tasks_clean1.json
+          # 2. コードブロック・json行・空行除去
+          sed '/^```/d;/^json$/Id;/^$/d' tasks_clean1.json > tasks_clean2.json
+          # 3. 1行目が{で始まるか確認
+          head -1 tasks_clean2.json
+          cat -A tasks_clean2.json | head -3
+          # 4. jqでパース
+          jq . tasks_clean2.json
           echo "implementation_tasks=$(cat tasks_final.json | jq -c '.implementation_tasks')" >> $GITHUB_OUTPUT
           echo "review_tasks=$(cat tasks_final.json | jq -c '.review_tasks')" >> $GITHUB_OUTPUT
 
