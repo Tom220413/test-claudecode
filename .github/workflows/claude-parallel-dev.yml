@@ -69,8 +69,16 @@ jobs:
         
       - name: 実装ブランチ作成
         run: |
-          # 実装用ブランチを作成
-          git checkout -b claude-implementation
+          # 既存のworktreeを削除
+          git worktree remove ../claude-impl 2>/dev/null || true
+          
+          # ブランチが存在するかチェックして作成
+          if ! git show-ref --verify --quiet refs/heads/claude-implementation; then
+            git checkout -b claude-implementation
+          else
+            git checkout claude-implementation
+          fi
+          
           git worktree add ../claude-impl claude-implementation
           cd ../claude-impl
           
