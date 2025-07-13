@@ -90,6 +90,8 @@ jobs:
           claude config set hasCompletedProjectOnboarding true
           
       - name: 並列実装実行
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           cd ../claude-impl
           # 全タスクを順次実行
@@ -100,6 +102,8 @@ jobs:
           done
           
       - name: PR作成
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           cd ../claude-impl
           git push origin claude-implementation
@@ -134,11 +138,15 @@ jobs:
           claude config set mcp.github.repo ${{ github.repository }}
           
       - name: ローカルレビュー実行
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           cd ../claude-review-$TASK_ID
           claude "最新のPRを確認し、客観的なコードレビューを実行してください"
           
       - name: PRレビューコメント
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           claude "レビュー結果をPRにコメントとして追加してください"
 
