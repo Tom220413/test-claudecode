@@ -63,25 +63,16 @@ jobs:
   claude_implementation:
     runs-on: ubuntu-latest
     needs: task_assignment
-    strategy:
-      matrix:
-        task: ${{ fromJson(needs.task_assignment.outputs.implementation_tasks) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: 実装実行
+      - name: 実装ブランチ作成
         run: |
-          # デバッグ: matrix.taskの内容を確認
-          echo "matrix.task: '${{ matrix.task }}'"
-          # タスク内容からIDを生成（英数字のみ）
-          TASK_ID=$(echo "${{ matrix.task }}" | iconv -f utf8 -t ascii//translit | tr -cd '[:alnum:]_' | head -c 15)
-          TASK_ID="${TASK_ID}_${{ strategy.job-index }}"
-          echo "TASK_ID: '$TASK_ID'"
-          # 新しいブランチを作成
-          git checkout -b claude-impl-$TASK_ID
-          git worktree add ../claude-impl-$TASK_ID claude-impl-$TASK_ID
-          cd ../claude-impl-$TASK_ID
+          # 実装用ブランチを作成
+          git checkout -b claude-implementation
+          git worktree add ../claude-impl claude-implementation
+          cd ../claude-impl
           
       - name: Setup Claude Code
         run: |
@@ -90,16 +81,21 @@ jobs:
           claude config set mcp.github.token $GITHUB_TOKEN
           claude config set mcp.github.repo ${{ github.repository }}
           
-      - name: 実装実行
+      - name: 並列実装実行
         run: |
-          cd ../claude-impl-$TASK_ID
-          claude "${{ matrix.task }}"
+          cd ../claude-impl
+          # 全タスクを順次実行
+          TASKS='${{ needs.task_assignment.outputs.implementation_tasks }}'
+          echo "$TASKS" | jq -r '.[]' | while read task; do
+            echo "=== 実装タスク: $task ==="
+            claude "$task"
+          done
           
       - name: PR作成
         run: |
-          cd ../claude-impl-$TASK_ID
-          git push origin claude-impl-$TASK_ID
-          claude "実装完了。PR作成してください。タイトル: ${{ matrix.task }}"
+          cd ../claude-impl
+          git push origin claude-implementation
+          claude "全実装完了。PR作成してください。タイトル: Claude実装 - 全機能"
 
   # Claude Code B: レビュー（実装完了後）
   claude_review:
