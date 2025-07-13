@@ -82,14 +82,14 @@ jobs:
           
       - name: 実装実行
         run: |
-          cd ../claude-impl-${{ matrix.task.id }}
-          claude "${{ matrix.task.prompt }}"
+          cd ../claude-impl-$TASK_ID
+          claude "${{ matrix.task }}"
           
       - name: PR作成
         run: |
-          cd ../claude-impl-${{ matrix.task.id }}
-          git push origin claude-impl-${{ matrix.task.id }}
-          claude "実装完了。PR作成してください。タイトル: ${{ matrix.task.title }}"
+          cd ../claude-impl-$TASK_ID
+          git push origin claude-impl-$TASK_ID
+          claude "実装完了。PR作成してください。タイトル: ${{ matrix.task }}"
 
   # Claude Code B: レビュー（実装完了後）
   claude_review:
@@ -103,10 +103,12 @@ jobs:
         uses: actions/checkout@v4
       - name: レビュー実行
         run: |
+          # タスク内容からIDを生成
+          TASK_ID=$(echo "${{ matrix.task }}" | head -c 20 | tr ' ' '_' | tr -d '\n')
           # 新しいブランチを作成
-          git checkout -b claude-review-${{ matrix.task.id }}
-          git worktree add ../claude-review-${{ matrix.task.id }} claude-review-${{ matrix.task.id }}
-          cd ../claude-review-${{ matrix.task.id }}
+          git checkout -b claude-review-$TASK_ID
+          git worktree add ../claude-review-$TASK_ID claude-review-$TASK_ID
+          cd ../claude-review-$TASK_ID
           
       - name: Setup Claude Code
         run: |
@@ -117,7 +119,7 @@ jobs:
           
       - name: ローカルレビュー実行
         run: |
-          cd ../claude-review-${{ matrix.task.id }}
+          cd ../claude-review-$TASK_ID
           claude "最新のPRを確認し、客観的なコードレビューを実行してください"
           
       - name: PRレビューコメント
